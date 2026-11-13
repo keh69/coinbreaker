@@ -2,7 +2,7 @@
 (() => {
   // 빌드 버전(로컬에서 index.html을 바로 열어도 표시되도록 코드에 내장)
   // 수정할 때마다 값을 갱신합니다. 포맷: YYYYMMDD-HHMMSS
-  const BUILD_VERSION = "2026년 11월 13일 - 7";
+  const BUILD_VERSION = "2026년 11월 13일 - 8";
 
   const SUPABASE_URL = "https://onudikupmynqtirkmmlc.supabase.co";
   const SUPABASE_ANON_KEY =
@@ -18,7 +18,7 @@
   const INDEPENDENT_PROFILE_PAGES = [...MAKER_LIKE_PAGES, ...SUPPLY_LIKE_PAGES];
 
   function getSupabaseRowId() {
-    // index.html에서 window.CB3_FORCE_ROW로 페이지 종류를 고정할 수 있습니다(/1 → maker2와 같은 동작).
+    // index.html에서 window.CB3_FORCE_ROW로 페이지 종류를 고정할 수 있습니다(/leverage → maker2와 같은 동작).
     const forced = typeof window.CB3_FORCE_ROW === "string" ? window.CB3_FORCE_ROW.toLowerCase() : "";
     if (forced && INDEPENDENT_PROFILE_PAGES.includes(forced)) return forced;
     const p = String(location.pathname || "").toLowerCase();
@@ -1673,7 +1673,7 @@
     fill("#txtSideBox", 18, 1);
   }
 
-  // window.CB3_LOCAL_ONLY_KEY를 지정한 페이지(/1)는 이 페이지의 모든 값을 이 컴퓨터의 localStorage에만
+  // window.CB3_LOCAL_ONLY_KEY를 지정한 페이지(/leverage)는 이 페이지의 모든 값을 이 컴퓨터의 localStorage에만
   // 저장합니다. Supabase에는 절대 쓰지 않습니다(읽기는 처음 한 번 maker2 값을 가져오는 것과
   // main의 공용 카드 레이아웃만).
   function localOnlyKey() {

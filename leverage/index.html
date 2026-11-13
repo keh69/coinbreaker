@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <script>/* /1 처럼 끝에 / 없이 열면 상대경로(app.js, 폰트)가 깨지므로 /1/ 로 바꿉니다. */
+    <script>/* /leverage 처럼 끝에 / 없이 열면 상대경로(app.js, 폰트)가 깨지므로 /leverage/ 로 바꿉니다. */
 if (/^https?:$/.test(location.protocol) && !/\/$|\.html?$/i.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);</script>
     <meta name="darkreader-lock" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -630,7 +630,7 @@ button.secondary{ background:#0c1220; }
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 7</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 8</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1133,7 +1133,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 13일 - 7"></script>
+    <script src="app.js?v=2026년 11월 13일 - 8"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
@@ -1192,7 +1192,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
       </div>
     </div>
     <script>
-/* ===== /1 전용: 카드 배경 (Supabase에는 배경만 저장) =====
+/* ===== /leverage 전용: 카드 배경 (Supabase에는 배경만 저장) =====
    첫 화면에서 입력칸이 아닌 곳에 1121을 치면 하단에 "배경추가"가 뜹니다.
    붙여넣은 이미지를 "배경변경"으로 적용하면 Supabase(page1_bg)에 저장되고, 다음에 열 때 불러옵니다. */
 (() => {

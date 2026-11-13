@@ -4,6 +4,8 @@
     { "src": "**/*", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/1(?:/.*)?", "status": 308, "headers": { "Location": "/leverage/" } },
+    { "src": "/2(?:/.*)?", "status": 308, "headers": { "Location": "/stock/" } },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
