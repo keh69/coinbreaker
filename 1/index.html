@@ -630,7 +630,7 @@ button.secondary{ background:#0c1220; }
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 4</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 5</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1133,7 +1133,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 13일 - 4"></script>
+    <script src="app.js?v=2026년 11월 13일 - 5"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
@@ -1149,6 +1149,14 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 #bgAddPanel .bgadd-btn{ background:#0abf7f; color:#04130d; border:0; border-radius:8px; padding:10px 18px; font-weight:700; cursor:pointer; }
 #bgAddPanel .bgadd-btn:disabled{ opacity:.5; cursor:default; }
 #bgAddStatus{ font-size:13px; color:rgba(231,238,252,.75); }
+#bgAddPanel .bgadd-field{ margin-top:16px; }
+#bgAddPanel .bgadd-label{ display:flex; justify-content:space-between; font-size:13px; color:rgba(231,238,252,.75); margin-bottom:8px; }
+#bgAddPanel .bgadd-label b{ font-weight:600; color:#e7eefc; }
+#bgAddPanel .bgadd-color{ display:flex; gap:10px; align-items:center; }
+#bgCoverColor{ width:44px; height:40px; padding:3px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:#0b0f17; cursor:pointer; }
+#bgCoverHex{ flex:1; height:40px; padding:0 12px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:#0b0f17; color:#e7eefc;
+  font-family:ui-monospace,Consolas,monospace; font-size:14px; }
+#bgCoverOpacity{ width:100%; accent-color:#818cf8; }
     </style>
     <div id="bgAddPanel" aria-hidden="true">
       <div class="bgadd-head">
@@ -1159,6 +1167,17 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
       <div class="bgadd-row">
         <button type="button" class="bgadd-btn" id="bgAddApply">배경변경</button>
         <span id="bgAddStatus"></span>
+      </div>
+      <div class="bgadd-field">
+        <div class="bgadd-label">1차 덮는 색</div>
+        <div class="bgadd-color">
+          <input type="color" id="bgCoverColor" value="#030712" />
+          <input type="text" id="bgCoverHex" value="#030712" maxlength="7" spellcheck="false" />
+        </div>
+      </div>
+      <div class="bgadd-field">
+        <div class="bgadd-label">1차 덮는 색 불투명도 <b id="bgCoverOpacityVal">90%</b></div>
+        <input type="range" id="bgCoverOpacity" min="0" max="100" step="1" value="90" />
       </div>
     </div>
     <script>
@@ -1196,24 +1215,89 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
     st.textContent = '#cardRoot.dg-body{ background-image:url("' + src + '") !important; ' + cover + "}";
   }
 
+  // 배경 그림 위에 덮는 1차 색 층(카드의 ::before 어두운 층)의 색과 불투명도(0~100%).
+  const coverColor = document.getElementById("bgCoverColor");
+  const coverHex = document.getElementById("bgCoverHex");
+  const coverOpacity = document.getElementById("bgCoverOpacity");
+  const coverOpacityVal = document.getElementById("bgCoverOpacityVal");
+  const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+  function applyCover(hex, pct) {
+    if (!HEX_RE.test(String(hex || ""))) return;
+    const n = parseInt(hex.slice(1), 16);
+    const a = Math.max(0, Math.min(100, Number(pct))) / 100;
+    let st = document.getElementById("cb3-page1-cover");
+    if (!st) {
+      st = document.createElement("style");
+      st.id = "cb3-page1-cover";
+      document.head.appendChild(st);
+    }
+    st.textContent = "#cardRoot.dg-body::before{ background-color: rgba(" + ((n >> 16) & 255) + ", " + ((n >> 8) & 255) + ", " + (n & 255) + ", " + a + ") !important; }";
+  }
+
+  function syncCoverUi(hex, pct) {
+    if (HEX_RE.test(String(hex || ""))) { coverColor.value = hex.toLowerCase(); coverHex.value = hex.toUpperCase(); }
+    if (Number.isFinite(Number(pct))) {
+      coverOpacity.value = String(Math.round(Number(pct)));
+      coverOpacityVal.textContent = Math.round(Number(pct)) + "%";
+    }
+  }
+
+  // Supabase(page1_bg 행)에 저장하는 값: 배경 그림 + 1차 덮는 색/불투명도.
+  let saved = {};
+  let loadDone = null;
+
   async function loadBg() {
     try {
       const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?select=data&id=eq." + ROW_ID + "&limit=1", { headers });
       if (!res.ok) return;
       const rows = await res.json();
       const d = rows && rows[0] && rows[0].data;
-      if (d && d.bg) applyBg(d.bg, d.ratio);
+      if (!d || typeof d !== "object") return;
+      saved = d;
+      if (d.bg) applyBg(d.bg, d.ratio);
+      if (HEX_RE.test(String(d.coverColor || "")) && Number.isFinite(Number(d.coverOpacity))) {
+        applyCover(d.coverColor, d.coverOpacity);
+        syncCoverUi(d.coverColor, d.coverOpacity);
+      }
     } catch (e) { console.error(e); }
   }
 
-  async function saveBg(src, ratio) {
+  async function saveData(patch) {
+    if (loadDone) await loadDone; // 불러오기 전에 저장해서 기존 배경을 지우지 않도록
+    saved = { ...saved, ...patch, updatedAt: new Date().toISOString() };
     const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?on_conflict=id", {
       method: "POST",
       headers: { ...headers, Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify([{ id: ROW_ID, data: { bg: src, ratio, updatedAt: new Date().toISOString() } }]),
+      body: JSON.stringify([{ id: ROW_ID, data: saved }]),
     });
     if (!res.ok) throw new Error("save failed: " + res.status);
   }
+
+  function saveBg(src, ratio) {
+    return saveData({ bg: src, ratio });
+  }
+
+  let coverTimer = null;
+  function onCoverChange(hex, pct) {
+    applyCover(hex, pct);
+    syncCoverUi(hex, pct);
+    clearTimeout(coverTimer);
+    coverTimer = setTimeout(() => {
+      saveData({ coverColor: hex.toUpperCase(), coverOpacity: Math.round(Number(pct)) })
+        .then(() => setStatus("덮는 색이 저장되었습니다."))
+        .catch((err) => { console.error(err); setStatus("덮는 색 저장에 실패했습니다."); });
+    }, 600);
+  }
+
+  coverColor.addEventListener("input", () => onCoverChange(coverColor.value, coverOpacity.value));
+  coverHex.addEventListener("input", () => {
+    let v = coverHex.value.trim();
+    if (v && v[0] !== "#") v = "#" + v;
+    if (HEX_RE.test(v)) onCoverChange(v, coverOpacity.value);
+  });
+  coverHex.addEventListener("blur", () => syncCoverUi(coverColor.value, coverOpacity.value));
+  coverOpacity.addEventListener("input", () => onCoverChange(coverColor.value, coverOpacity.value));
 
   // 붙여넣은 이미지를 적당한 크기의 JPEG로 줄여서(저장 용량 절약) 돌려줍니다.
   function shrinkImage(file) {
@@ -1309,7 +1393,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
     if (typed === "1121") { typed = ""; openPanel(); }
   });
 
-  loadBg();
+  loadDone = loadBg();
 })();
     </script>
     <script>
