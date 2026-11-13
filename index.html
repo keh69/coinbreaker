@@ -3,16 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title></title>
+    <title>Coin Breaker</title>
     <style>
       html, body {
         margin: 0;
         padding: 0;
         width: 100%;
-        height: 100%;
-        background: #000;
+        min-height: 100%;
+        background: #0b0f17;
+        color: #e7eefc;
+        font-family: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      }
+      .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+      h1 {
+        margin: 0 0 20px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      a {
+        display: block;
+        padding: 14px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #0c1220;
+        color: rgba(231, 238, 252, 0.92);
+        text-decoration: none;
+        font-size: 14px;
+      }
+      a:hover {
+        border-color: rgba(10, 191, 127, 0.55);
+        background: rgba(10, 191, 127, 0.12);
       }
     </style>
   </head>
-  <body></body>
+  <body>
+    <div class="wrap">
+      <h1>Coin Breaker</h1>
+      <div class="grid">
+        <a href="1/">1 (레버리지 인증)</a>
+        <a href="2/">2 (주식 인증)</a>
+        <a href="breaker33/index.html">breaker (메인)</a>
+        <a href="control/index.html">컨트롤</a>
+        <a href="maker/index.html">maker</a>
+        <a href="maker2/index.html">maker2</a>
+        <a href="supply/index.html">supply</a>
+        <a href="gein/index.html">gein</a>
+        <a href="simple/index.html">simple</a>
+        <a href="stockmaker3/index.html">stockmaker3</a>
+      </div>
+    </div>
+  </body>
 </html>
