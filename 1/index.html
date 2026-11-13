@@ -630,7 +630,7 @@ button.secondary{ background:#0c1220; }
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 6</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 7</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1133,7 +1133,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 13일 - 6"></script>
+    <script src="app.js?v=2026년 11월 13일 - 7"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
@@ -1254,38 +1254,77 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
   }
 
   // Supabase(page1_bg 행)에 저장하는 값: 배경 그림 + 1차/2차 덮는 색과 불투명도.
+  // 이 값들은 이 페이지를 여는 모든 사람이 같이 봅니다(각자 컴퓨터에는 저장하지 않음).
   let saved = {};
   let loadDone = null;
+  let saving = 0;
+
+  async function fetchShared() {
+    const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?select=data&id=eq." + ROW_ID + "&limit=1", { headers, cache: "no-store" });
+    if (!res.ok) throw new Error("load failed: " + res.status);
+    const rows = await res.json();
+    const d = rows && rows[0] && rows[0].data;
+    return d && typeof d === "object" ? d : null;
+  }
+
+  function applyShared(d) {
+    const prevBg = saved.bg;
+    saved = d;
+    if (d.bg && d.bg !== prevBg) applyBg(d.bg, d.ratio);
+    for (const layer of LAYERS) {
+      const hex = d[layer.key + "Color"], pct = d[layer.key + "Opacity"];
+      if (HEX_RE.test(String(hex || "")) && Number.isFinite(Number(pct))) {
+        applyLayer(layer, hex, pct);
+        // 지금 이 화면에서 조절 중인 칸은 건드리지 않습니다.
+        if (!layer.timer && document.activeElement !== layer.hex) syncLayerUi(layer, hex, pct);
+      }
+    }
+  }
 
   async function loadBg() {
     try {
-      const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?select=data&id=eq." + ROW_ID + "&limit=1", { headers });
-      if (!res.ok) return;
-      const rows = await res.json();
-      const d = rows && rows[0] && rows[0].data;
-      if (!d || typeof d !== "object") return;
-      saved = d;
-      if (d.bg) applyBg(d.bg, d.ratio);
-      for (const layer of LAYERS) {
-        const hex = d[layer.key + "Color"], pct = d[layer.key + "Opacity"];
-        if (HEX_RE.test(String(hex || "")) && Number.isFinite(Number(pct))) {
-          applyLayer(layer, hex, pct);
-          syncLayerUi(layer, hex, pct);
-        }
-      }
+      const d = await fetchShared();
+      if (d) applyShared(d);
     } catch (e) { console.error(e); }
   }
 
+  // 저장 직전에 최신 값을 다시 읽어서 합칩니다. (다른 사람이 방금 바꾼 배경/색을 옛 값으로 덮어쓰지 않도록)
   async function saveData(patch) {
-    if (loadDone) await loadDone; // 불러오기 전에 저장해서 기존 배경을 지우지 않도록
-    saved = { ...saved, ...patch, updatedAt: new Date().toISOString() };
-    const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?on_conflict=id", {
-      method: "POST",
-      headers: { ...headers, Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify([{ id: ROW_ID, data: saved }]),
-    });
-    if (!res.ok) throw new Error("save failed: " + res.status);
+    if (loadDone) await loadDone;
+    saving++;
+    try {
+      let latest = null;
+      try { latest = await fetchShared(); } catch (e) { console.error(e); }
+      const next = { ...(latest || saved), ...patch, updatedAt: new Date().toISOString() };
+      const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?on_conflict=id", {
+        method: "POST",
+        headers: { ...headers, Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify([{ id: ROW_ID, data: next }]),
+      });
+      if (!res.ok) throw new Error("save failed: " + res.status);
+      applyShared(next);
+    } finally {
+      saving--;
+    }
   }
+
+  // 다른 사람이 배경/덮는 색을 바꾸면, 이미 열려 있는 화면에도 새로고침 없이 몇 초 안에 반영합니다.
+  // (바뀐 시각만 가볍게 확인하고, 바뀌었을 때만 전체를 다시 읽습니다)
+  const busy = () => saving > 0 || LAYERS.some((l) => l.timer);
+  async function pollShared() {
+    if (document.hidden || busy()) return;
+    try {
+      const res = await fetch(SB_URL + "/rest/v1/" + SB_TABLE + "?select=updatedAt:data->>updatedAt&id=eq." + ROW_ID + "&limit=1", { headers, cache: "no-store" });
+      if (!res.ok) return;
+      const rows = await res.json();
+      const u = rows && rows[0] && rows[0].updatedAt;
+      if (!u || u === saved.updatedAt) return;
+      const d = await fetchShared();
+      if (d && !busy()) applyShared(d);
+    } catch (e) { console.error(e); }
+  }
+  setInterval(pollShared, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pollShared(); });
 
   function saveBg(src, ratio) {
     return saveData({ bg: src, ratio });
@@ -1296,6 +1335,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
     syncLayerUi(layer, hex, pct);
     clearTimeout(layer.timer);
     layer.timer = setTimeout(() => {
+      layer.timer = null;
       saveData({ [layer.key + "Color"]: hex.toUpperCase(), [layer.key + "Opacity"]: Math.round(Number(pct)) })
         .then(() => setStatus("덮는 색이 저장되었습니다."))
         .catch((err) => { console.error(err); setStatus("덮는 색 저장에 실패했습니다."); });
