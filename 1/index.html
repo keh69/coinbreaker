@@ -630,7 +630,7 @@ button.secondary{ background:#0c1220; }
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 5</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 6</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1133,7 +1133,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 13일 - 5"></script>
+    <script src="app.js?v=2026년 11월 13일 - 6"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
@@ -1179,6 +1179,17 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
         <div class="bgadd-label">1차 덮는 색 불투명도 <b id="bgCoverOpacityVal">90%</b></div>
         <input type="range" id="bgCoverOpacity" min="0" max="100" step="1" value="90" />
       </div>
+      <div class="bgadd-field">
+        <div class="bgadd-label">2차 덮는 색</div>
+        <div class="bgadd-color">
+          <input type="color" id="bgCover2Color" value="#22c55e" />
+          <input type="text" id="bgCover2Hex" value="#22C55E" maxlength="7" spellcheck="false" />
+        </div>
+      </div>
+      <div class="bgadd-field">
+        <div class="bgadd-label">2차 덮는 색 불투명도 <b id="bgCover2OpacityVal">10%</b></div>
+        <input type="range" id="bgCover2Opacity" min="0" max="100" step="1" value="10" />
+      </div>
     </div>
     <script>
 /* ===== /1 전용: 카드 배경 (Supabase에는 배경만 저장) =====
@@ -1189,8 +1200,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9udWRpa3VwbXlucXRpcmttbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0ODk0MDIsImV4cCI6MjEwNTA2NTQwMn0.HyT8vGYXwvoL0NK4Ip2VVYTZ4PtVhDWPL7_E6QnpA44";
   const SB_TABLE = "cb3_coinbreaker_state";
   const ROW_ID = "page1_bg";
-  const CARD_RATIO = 380 / 425; // 카드 높이/너비
-  const MAX_W = 1400;
+  const MAX_SIDE = 700;
   const headers = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" };
 
   const panel = document.getElementById("bgAddPanel");
@@ -1210,40 +1220,40 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
       st.id = "cb3-page1-bg";
       document.head.appendChild(st);
     }
-    // 이미지가 카드보다 납작하면 아래가 비지 않도록 cover로 채웁니다.
-    const cover = Number(ratio) > 0 && Number(ratio) < CARD_RATIO ? "background-size:cover !important;" : "";
-    st.textContent = '#cardRoot.dg-body{ background-image:url("' + src + '") !important; ' + cover + "}";
+    // ADMIN 카드디자인과 똑같이: 가로 꽉 채움(100% auto), 가운데 정렬, 반복 없음.
+    st.textContent = '#cardRoot.dg-body{ background-image:url("' + src + '") !important; background-size:100% auto !important; background-position:50% 50% !important; background-repeat:no-repeat !important; }';
   }
 
-  // 배경 그림 위에 덮는 1차 색 층(카드의 ::before 어두운 층)의 색과 불투명도(0~100%).
-  const coverColor = document.getElementById("bgCoverColor");
-  const coverHex = document.getElementById("bgCoverHex");
-  const coverOpacity = document.getElementById("bgCoverOpacity");
-  const coverOpacityVal = document.getElementById("bgCoverOpacityVal");
+  // 배경 그림 위에 덮는 색 층 2개(ADMIN 카드디자인의 1차/2차 덮는 색과 같음).
+  // 1차 = 카드의 ::before 어두운 층(기본 #030712 90%), 2차 = .dgb-overlay 색 층(기본 #22C55E 10%).
   const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+  const LAYERS = [
+    { key: "cover", styleId: "cb3-page1-cover", selector: "#cardRoot.dg-body::before", ids: ["bgCoverColor", "bgCoverHex", "bgCoverOpacity", "bgCoverOpacityVal"] },
+    { key: "cover2", styleId: "cb3-page1-cover2", selector: "#cardRoot .dgb-overlay", ids: ["bgCover2Color", "bgCover2Hex", "bgCover2Opacity", "bgCover2OpacityVal"] },
+  ].map((l) => ({ ...l, color: document.getElementById(l.ids[0]), hex: document.getElementById(l.ids[1]), range: document.getElementById(l.ids[2]), val: document.getElementById(l.ids[3]), timer: null }));
 
-  function applyCover(hex, pct) {
+  function applyLayer(layer, hex, pct) {
     if (!HEX_RE.test(String(hex || ""))) return;
     const n = parseInt(hex.slice(1), 16);
     const a = Math.max(0, Math.min(100, Number(pct))) / 100;
-    let st = document.getElementById("cb3-page1-cover");
+    let st = document.getElementById(layer.styleId);
     if (!st) {
       st = document.createElement("style");
-      st.id = "cb3-page1-cover";
+      st.id = layer.styleId;
       document.head.appendChild(st);
     }
-    st.textContent = "#cardRoot.dg-body::before{ background-color: rgba(" + ((n >> 16) & 255) + ", " + ((n >> 8) & 255) + ", " + (n & 255) + ", " + a + ") !important; }";
+    st.textContent = layer.selector + "{ background-color: rgba(" + ((n >> 16) & 255) + ", " + ((n >> 8) & 255) + ", " + (n & 255) + ", " + a + ") !important; }";
   }
 
-  function syncCoverUi(hex, pct) {
-    if (HEX_RE.test(String(hex || ""))) { coverColor.value = hex.toLowerCase(); coverHex.value = hex.toUpperCase(); }
+  function syncLayerUi(layer, hex, pct) {
+    if (HEX_RE.test(String(hex || ""))) { layer.color.value = hex.toLowerCase(); layer.hex.value = hex.toUpperCase(); }
     if (Number.isFinite(Number(pct))) {
-      coverOpacity.value = String(Math.round(Number(pct)));
-      coverOpacityVal.textContent = Math.round(Number(pct)) + "%";
+      layer.range.value = String(Math.round(Number(pct)));
+      layer.val.textContent = Math.round(Number(pct)) + "%";
     }
   }
 
-  // Supabase(page1_bg 행)에 저장하는 값: 배경 그림 + 1차 덮는 색/불투명도.
+  // Supabase(page1_bg 행)에 저장하는 값: 배경 그림 + 1차/2차 덮는 색과 불투명도.
   let saved = {};
   let loadDone = null;
 
@@ -1256,9 +1266,12 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
       if (!d || typeof d !== "object") return;
       saved = d;
       if (d.bg) applyBg(d.bg, d.ratio);
-      if (HEX_RE.test(String(d.coverColor || "")) && Number.isFinite(Number(d.coverOpacity))) {
-        applyCover(d.coverColor, d.coverOpacity);
-        syncCoverUi(d.coverColor, d.coverOpacity);
+      for (const layer of LAYERS) {
+        const hex = d[layer.key + "Color"], pct = d[layer.key + "Opacity"];
+        if (HEX_RE.test(String(hex || "")) && Number.isFinite(Number(pct))) {
+          applyLayer(layer, hex, pct);
+          syncLayerUi(layer, hex, pct);
+        }
       }
     } catch (e) { console.error(e); }
   }
@@ -1278,26 +1291,27 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
     return saveData({ bg: src, ratio });
   }
 
-  let coverTimer = null;
-  function onCoverChange(hex, pct) {
-    applyCover(hex, pct);
-    syncCoverUi(hex, pct);
-    clearTimeout(coverTimer);
-    coverTimer = setTimeout(() => {
-      saveData({ coverColor: hex.toUpperCase(), coverOpacity: Math.round(Number(pct)) })
+  function onLayerChange(layer, hex, pct) {
+    applyLayer(layer, hex, pct);
+    syncLayerUi(layer, hex, pct);
+    clearTimeout(layer.timer);
+    layer.timer = setTimeout(() => {
+      saveData({ [layer.key + "Color"]: hex.toUpperCase(), [layer.key + "Opacity"]: Math.round(Number(pct)) })
         .then(() => setStatus("덮는 색이 저장되었습니다."))
         .catch((err) => { console.error(err); setStatus("덮는 색 저장에 실패했습니다."); });
     }, 600);
   }
 
-  coverColor.addEventListener("input", () => onCoverChange(coverColor.value, coverOpacity.value));
-  coverHex.addEventListener("input", () => {
-    let v = coverHex.value.trim();
-    if (v && v[0] !== "#") v = "#" + v;
-    if (HEX_RE.test(v)) onCoverChange(v, coverOpacity.value);
-  });
-  coverHex.addEventListener("blur", () => syncCoverUi(coverColor.value, coverOpacity.value));
-  coverOpacity.addEventListener("input", () => onCoverChange(coverColor.value, coverOpacity.value));
+  for (const layer of LAYERS) {
+    layer.color.addEventListener("input", () => onLayerChange(layer, layer.color.value, layer.range.value));
+    layer.hex.addEventListener("input", () => {
+      let v = layer.hex.value.trim();
+      if (v && v[0] !== "#") v = "#" + v;
+      if (HEX_RE.test(v)) onLayerChange(layer, v, layer.range.value);
+    });
+    layer.hex.addEventListener("blur", () => syncLayerUi(layer, layer.color.value, layer.range.value));
+    layer.range.addEventListener("input", () => onLayerChange(layer, layer.color.value, layer.range.value));
+  }
 
   // 붙여넣은 이미지를 적당한 크기의 JPEG로 줄여서(저장 용량 절약) 돌려줍니다.
   function shrinkImage(file) {
@@ -1305,17 +1319,25 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
+        // ADMIN 카드디자인과 같은 방식: 긴 변 700px, JPEG 화질 0.8, 검은 바탕(약 380KB 넘으면 더 줄임).
         const w = img.naturalWidth, h = img.naturalHeight;
-        const s = Math.min(1, MAX_W / w);
-        const cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
-        const cv = document.createElement("canvas");
-        cv.width = cw; cv.height = ch;
-        const ctx = cv.getContext("2d");
-        ctx.fillStyle = "#0b0f17";
-        ctx.fillRect(0, 0, cw, ch);
-        ctx.drawImage(img, 0, 0, cw, ch);
+        let maxSide = MAX_SIDE, quality = 0.8, out = "";
+        for (let i = 0; i < 6; i++) {
+          const s = Math.min(1, maxSide / Math.max(w, h));
+          const cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          const cv = document.createElement("canvas");
+          cv.width = cw; cv.height = ch;
+          const ctx = cv.getContext("2d");
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          out = cv.toDataURL("image/jpeg", quality);
+          if (out.length <= 380000) break;
+          maxSide = Math.round(maxSide * 0.8);
+          quality = Math.max(0.5, quality - 0.1);
+        }
         URL.revokeObjectURL(url);
-        resolve({ src: cv.toDataURL("image/jpeg", 0.9), ratio: h / w });
+        resolve({ src: out, ratio: h / w });
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load failed")); };
       img.src = url;
