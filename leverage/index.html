@@ -625,12 +625,13 @@ button.secondary{ background:#0c1220; }
 
 
 #maker2Presets .preset-btn.pressed{ border-color:#ffffff; box-shadow:0 0 0 1px #ffffff, 0 0 12px rgba(255,255,255,.8); color:#ffffff; }
+#maker2Presets .preset-btn.pressed.last-pressed{ border-color:#facc15; box-shadow:0 0 0 1px #facc15, 0 0 14px rgba(250,204,21,.9); color:#facc15; }
 </style>
   </head>
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 13일 - 8</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 19일 - 2</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1119,11 +1120,13 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
   });
   // 눌러본 프리셋은 테두리가 발광하고, 우측 버튼으로 모두 초기화합니다.
   const presetBtns = document.querySelectorAll('#maker2Presets .preset-btn[data-preset]');
+  // 마지막에 누른 프리셋 하나만 노란색으로 빛나고, 그전에 누른 것은 흰색으로 남습니다.
   presetBtns.forEach((btn) => btn.addEventListener('click', () => {
-    btn.classList.add('pressed');
+    presetBtns.forEach((b) => b.classList.remove('last-pressed'));
+    btn.classList.add('pressed', 'last-pressed');
   }));
   const resetGlow = document.getElementById('btnMaker2ResetGlow');
-  if (resetGlow) resetGlow.addEventListener('click', () => presetBtns.forEach((b) => b.classList.remove('pressed')));
+  if (resetGlow) resetGlow.addEventListener('click', () => presetBtns.forEach((b) => b.classList.remove('pressed', 'last-pressed')));
   // 프리셋0/상단 투자금 칸은 프리셋 클릭으로 정해진 투자금(override)을 해제하고 상단 칸 값을 씁니다.
   const clearOverride = () => { window.CB3_INVEST_OVERRIDE = ""; };
   const gen = document.getElementById("btnGenerate");
@@ -1133,7 +1136,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 13일 - 8"></script>
+    <script src="app.js?v=2026년 11월 19일 - 2"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
