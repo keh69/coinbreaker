@@ -177,6 +177,10 @@ button.secondary{ background:#0c1220; }
 .actions{ flex-wrap:wrap; margin-top:14px; }
 .zoom-stepper button,.side-btn{ flex:1; }
 .side-btn.active{ background:rgba(10,191,127,.18); border-color:rgba(10,191,127,.55); }
+@keyframes sidePickGlow{ 0%,100%{ box-shadow:0 0 0 1px #facc15, 0 0 6px rgba(250,204,21,.5); } 50%{ box-shadow:0 0 0 2px #facc15, 0 0 18px rgba(250,204,21,1); } }
+.side-toggle.need-pick .side-btn{ border-color:#facc15; animation:sidePickGlow 1s ease-in-out infinite; }
+#sidePickMsg{ display:none; margin-left:10px; color:#facc15; font-size:20px; font-weight:800; vertical-align:middle; }
+#sidePickMsg.show{ display:inline; }
 .bg-move{ display:grid; gap:8px; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background:#0c1220; }
 .bg-move-row{ justify-content:center; }
 .bg-shift-inputs,.cloud-actions,.phrase-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -631,7 +635,7 @@ button.secondary{ background:#0c1220; }
   <body>
     <div class="topbar">
       <div class="topbar-left">Coin Maker2</div>
-            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 20일 - 2</span></div>
+            <div class="topbar-right">버전 <span id="buildVersion">2026년 11월 20일 - 3</span></div>
     </div>
     <div class="app">
       <div class="preview">
@@ -1044,7 +1048,7 @@ button.secondary{ background:#0c1220; }
             </div>
           </label>
           <label>
-            포지션(LONG/SHORT)
+            포지션(LONG/SHORT)<span id="sidePickMsg">롱 숏 선택하세요</span>
             <div class="side-toggle" role="group" aria-label="포지션 선택">
               <button id="btnSideLong" class="secondary side-btn" type="button">LONG</button>
               <button id="btnSideShort" class="secondary side-btn" type="button">SHORT</button>
@@ -1136,7 +1140,7 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
 })();
     </script>
     <script>window.CB3_FORCE_ROW = "maker2"; window.CB3_LOCAL_ONLY_KEY = "cb3_page1_state";</script>
-    <script src="app.js?v=2026년 11월 20일 - 2"></script>
+    <script src="app.js?v=2026년 11월 20일 - 3"></script>
     <style>
 #bgAddPanel{ display:none; max-width:760px; margin:0 24px 40px; padding:16px; border-radius:12px;
   border:1px solid rgba(255,255,255,.14); background:#0c1220; color:#e7eefc; font-family:"Noto Sans KR",system-ui,sans-serif; }
@@ -1523,7 +1527,24 @@ window.CB3_PRESET_INVEST_PREFIX = "inpMaker2Invest";
     entry.value = out;
     if (ENTRY_RE.test(out)) lastValidEntry = out;
     fire(entry);
+    requireSidePick();
   });
+  // 진입가격을 바꾸면 포지션 선택을 풀고, LONG/SHORT 버튼을 누를 때까지 노랗게 발광 + 안내 문구를 띄웁니다.
+  const sideToggle = document.querySelector(".side-toggle");
+  const sidePickMsg = document.getElementById("sidePickMsg");
+  function requireSidePick() {
+    const sideInp = document.getElementById("inpSide");
+    if (sideInp) sideInp.value = "";
+    document.querySelectorAll(".side-toggle .side-btn").forEach((b) => b.classList.remove("active"));
+    if (sideToggle) sideToggle.classList.add("need-pick");
+    if (sidePickMsg) sidePickMsg.classList.add("show");
+  }
+  function sidePicked() {
+    if (sideToggle) sideToggle.classList.remove("need-pick");
+    if (sidePickMsg) sidePickMsg.classList.remove("show");
+  }
+  document.querySelectorAll(".side-toggle .side-btn").forEach((b) => b.addEventListener("click", sidePicked));
+  entry.addEventListener("input", (e) => { if (e.isTrusted) requireSidePick(); });
   entry.addEventListener("blur", completeEntry);
   entry.addEventListener("change", completeEntry);
 
